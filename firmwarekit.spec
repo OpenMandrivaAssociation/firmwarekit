@@ -12,6 +12,7 @@ Patch2: 	firmwarekit-r2-dmesg.patch
 BuildRoot:	%_tmppath/%name-buildroot
 
 BuildRequires:	gccmakedep
+BuildRequires:	glib2-devel
 BuildRequires:	newt-devel
 Requires:   	iasl
 Requires:   	pmtools
