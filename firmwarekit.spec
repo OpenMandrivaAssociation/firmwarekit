@@ -9,6 +9,7 @@ Source: 	http://www.linuxfirmwarekit.org/download/firmwarekit-%version.tar.gz
 Patch0:  	firmwarekit-r2-distro.patch
 Patch1: 	firmwarekit-r2-mandriva_lspci.patch
 Patch2: 	firmwarekit-r2-dmesg.patch
+Patch3: 	firmwarekit-r2-ebda_fPIC.patch
 BuildRoot:	%_tmppath/%name-buildroot
 
 BuildRequires:	gccmakedep
@@ -26,9 +27,10 @@ together with the firmware (BIOS or EFI) of your machine.
 %patch0 -p1 -b .distro
 %patch1 -p1 -b .mandriva_lspci
 %patch2 -p1 -b .dmesg
+%patch3 -p1 -b .ebda_fPIC
 
 %build
-%make libdir=%_libdir
+make libdir=%_libdir
 
 %install
 rm -rf %buildroot
