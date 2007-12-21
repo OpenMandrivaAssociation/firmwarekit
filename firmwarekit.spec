@@ -10,6 +10,7 @@ Patch0:  	firmwarekit-r2-distro.patch
 Patch1: 	firmwarekit-r2-mandriva_lspci.patch
 Patch2: 	firmwarekit-r2-dmesg.patch
 Patch3: 	firmwarekit-r2-ebda_fPIC.patch
+BuildRoot:	%_tmppath/%name-buildroot
 
 BuildRequires:	gccmakedep
 BuildRequires:	glib2-devel
