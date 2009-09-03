@@ -1,7 +1,7 @@
 Summary:	Linux Firmware Tester
 Name:   	firmwarekit
 Version:	r2
-Release:	%mkrel 4
+Release:	%mkrel 5
 License:	LGPL
 Group:  	System/Configuration/Hardware
 URL:    	http://www.linuxfirmwarekit.org/
