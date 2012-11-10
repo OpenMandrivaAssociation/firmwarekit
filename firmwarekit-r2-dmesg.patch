@@ -1,0 +1,11 @@
+--- linuxfirmwarekit/dmesg.c.orig	2007-05-24 14:49:41.000000000 -0300
++++ linuxfirmwarekit/dmesg.c	2007-05-24 14:50:49.000000000 -0300
+@@ -48,7 +48,7 @@
+ 	dmesg = malloc(DMESG_SIZE);
+ 	assert(dmesg!=NULL);
+ 
+-	system("/bin/dmesg -s 256000 > "DMESG_FILE);
++	system("/bin/cp -f " DMESG_LOCAL_FILE " " DMESG_FILE);
+ 
+ 	/* don't printk to the console; newt hates that */
+ 	klogctl (6, NULL, 0);

@@ -1,0 +1,346 @@
+diff -Naur linuxfirmwarekit.orig/acpicompile/acpicompile.c linuxfirmwarekit/acpicompile/acpicompile.c
+--- linuxfirmwarekit.orig/acpicompile/acpicompile.c	2007-03-24 20:18:36.000000000 -0300
++++ linuxfirmwarekit/acpicompile/acpicompile.c	2007-05-25 13:14:42.000000000 -0300
+@@ -82,12 +82,7 @@
+ 	char command[4096];
+ 	int errlineno;
+ 
+-	/* Compile the dsdt or ssdt .dsl with iasl */
+-	if (access("plugins", R_OK))
+-		sprintf(command, "../plugins/iasl -vi -vs -w3 %s", filename);
+-	else
+-		sprintf(command, "plugins/iasl -vi -vs -w3 %s", filename);
+-			
++	sprintf(command, "pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -vi -vs -w3 %s; popd >/dev/null", filename);
+ 
+ 	/* analyse output of the iasl compiler */
+ 	file = popen(command,"r");
+@@ -215,9 +210,9 @@
+ 
+ 	for (i=0; i<MAX_SSDTS; i++) {
+ 		if (i == 0)
+-			sprintf(filen, "SSDT.dsl");
++			sprintf(filen, "/var/log/firmwarekit/SSDT.dsl");
+ 		else
+-			sprintf(filen, "SSDT%i.dsl", i);
++			sprintf(filen, "/var/log/firmwarekit/SSDT%i.dsl", i);
+ 
+ 		if (!access(filen, R_OK))
+ 			do_table(filen);
+@@ -227,9 +222,9 @@
+ 
+ 	/* report how much space would be saved by re-compiling 
+ 	 * DSDT with iasl */
+-	ret = stat("DSDT.dat", &before);
++	ret = stat("/var/log/firmwarekit/DSDT.dat", &before);
+ 	if (!ret) {
+-		ret = stat("DSDT.aml", &after);
++		ret = stat("/var/log/firmwarekit/DSDT.aml", &after);
+ 		if (!ret) {
+ 			char outbuf[4096];
+ 			char detbuf[4096];
+diff -Naur linuxfirmwarekit.orig/acpicompile/Makefile linuxfirmwarekit/acpicompile/Makefile
+--- linuxfirmwarekit.orig/acpicompile/Makefile	2007-03-23 22:16:50.000000000 -0300
++++ linuxfirmwarekit/acpicompile/Makefile	2007-05-25 13:14:42.000000000 -0300
+@@ -2,7 +2,7 @@
+ LDFLAGS =  `pkg-config --libs glib-2.0` -L.. -lstandalone
+ 
+ 
+-all: acpicompile.exe iasl acpixtract acpidump
++all: acpicompile.exe
+ 
+ acpicompile.exe: acpicompile.o .depend
+ 	gcc acpicompile.o $(LDFLAGS) -o acpicompile.exe
+diff -Naur linuxfirmwarekit.orig/dsdt.c linuxfirmwarekit/dsdt.c
+--- linuxfirmwarekit.orig/dsdt.c	2007-03-24 18:19:41.000000000 -0300
++++ linuxfirmwarekit/dsdt.c	2007-05-25 13:14:42.000000000 -0300
+@@ -55,15 +55,15 @@
+ 	int ret;
+ 	
+ 	/* create hex-dump format of all acpi tables in file 'acpidump' */
+-	system("plugins/acpidump > acpi.dump &> /dev/null");
+-	if (access("acpi.dump", R_OK))
+-		fprintf(stderr,"WARN (acpidump): failed to create acpi.dump.\n");
++	system("/usr/sbin/acpidump > /var/log/firmwarekit/acpi.dump &> /dev/null");
++	if (access("/var/log/firmwarekit/acpi.dump", R_OK))
++		fprintf(stderr,"WARN (acpidump): failed to create /var/log/firmwarekit/acpi.dump.\n");
+ 	
+ 	/* use 'acpidump' file to extract dsdt and ssdt tables
+ 	 * in binary format, creates DSDT.dat and SSDT*.dat */
+-	system("plugins/acpixtract acpi.dump &> /dev/null");
+-	if (access("DSDT.dat", R_OK)) {
+-		ret = system("cat /proc/acpi/dsdt > DSDT.dat");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/sbin/acpixtract acpi.dump &> /dev/null; popd >/dev/null");
++	if (access("/var/log/firmwarekit/DSDT.dat", R_OK)) {
++		ret = system("cat /proc/acpi/dsdt > /var/log/firmwarekit/DSDT.dat");
+ 		if (ret != EXIT_SUCCESS) {
+ 			fprintf(stderr,"WARN (acpixtract: failed to create DSDT.dat.\n");
+ 			return;
+@@ -71,25 +71,25 @@
+ 	}
+ 
+ 	/* Disassemble DSDT.dat with iasl, will create DSDT.dsl */
+-	system("plugins/iasl -d DSDT.dat &>/dev/null");
+-	if (access("DSDT.dsl", R_OK))
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d DSDT.dat &>/dev/null; popd >/dev/null");
++	if (access("/var/log/firmwarekit/DSDT.dsl", R_OK))
+ 		fprintf(stderr,"WARN (iasl): failed to create DSDT.dsl.\n");
+ 
+-	 /* Include ACPI table for external symbol resolution (if they exist) */
+-	 system("plugins/iasl -d -e DSDT.dat SSDT.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT1.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT2.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT3.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT4.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT5.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT6.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT7.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT8.dat &>/dev/null");
+-	 system("plugins/iasl -d -e DSDT.dat SSDT9.dat &>/dev/null");
++	/* Include ACPI table for external symbol resolution (if they exist) */
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT1.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT2.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT3.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT4.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT5.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT6.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT7.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT8.dat &>/dev/null; popd >/dev/null");
++	system("pushd /var/log/firmwarekit/ >/dev/null; /usr/bin/iasl -d -e DSDT.dat SSDT9.dat &>/dev/null; popd >/dev/null");
+ 
+ 	/* current iasl has an issue with arugment counts in SSDT's, work around this */
+-	system("sed -i -e \"s/^ACPI Error.*Argument count mismatch for method.*//g\" SSDT*.dsl &> /dev/null");
+-	
++	system("sed -i -e \"s/^ACPI Error.*Argument count mismatch for method.*//g\" /var/log/firmwarekit/SSDT*.dsl &> /dev/null");
++
+ }
+ 
+ /* push () -- adds a '{' to locator string */
+@@ -398,11 +398,11 @@
+ 
+ 	extract_dsdt_ssdts();
+ 	  
+-	parse_dsdt("DSDT.dsl");
++	parse_dsdt("/var/log/firmwarekit/DSDT.dsl");
+ 	announce_aml_resources();
+ 
+ 	for (i=1; i<10; i++) {
+-		sprintf(filen, "SSDT%i.dsl", i);
++		sprintf(filen, "/var/log/firmwarekit/SSDT%i.dsl", i);
+ 		if (!access(filen, R_OK)) {
+ 			parse_dsdt(filen);
+ 			announce_aml_resources();
+diff -Naur linuxfirmwarekit.orig/libstandalone.c linuxfirmwarekit/libstandalone.c
+--- linuxfirmwarekit.orig/libstandalone.c	2007-03-23 22:16:50.000000000 -0300
++++ linuxfirmwarekit/libstandalone.c	2007-05-25 13:14:42.000000000 -0300
+@@ -180,34 +180,24 @@
+ 
+ 	int ret, i;
+ 	static int current_ssdt = 0;
+-	char cmd_prefix[1024];
+ 	char command[4096];
+ 	char line[4096];
+ 	char filen[1024];
+ 	FILE *file;
+ 
+ 
+-	/* First, find plugins/ directory where acpi tools (acpidump, acpixtract, etc.)
+-	 * are located (should exist after compiling "acpicompile" plugin).  
+-	 * Since we're standalone, we could be called from a few different
+-	 * places. */
+-	if (access("plugins", R_OK))
+-			sprintf(cmd_prefix, "../plugins/");
+-	else
+-			sprintf(cmd_prefix, "plugins/");
+-
+ 	/* create hex-dump format of all acpi tables in file 'acpi.dump' */
+-	sprintf(command, "%sacpidump > acpi.dump &> /dev/null", cmd_prefix);
++	sprintf(command, "%sacpidump > /var/log/firmwarekit/acpi.dump &> /dev/null", "/usr/sbin/");
+ 	system(command);
+-	if (access("acpi.dump", R_OK))
++	if (access("/var/log/firmwarekit/acpi.dump", R_OK))
+ 		fprintf(stderr,"WARN (acpidump): failed to create acpi.dump.\n");
+ 	
+ 	/* use 'acpidump' file to extract dsdt and ssdt tables
+ 	 * in binary format, creates DSDT.dat and SSDT*.dat */
+-	sprintf(command, "%sacpixtract acpi.dump &> /dev/null", cmd_prefix);
++	sprintf(command, "pushd /var/log/firmwarekit/ >/dev/null; %sacpixtract acpi.dump &> /dev/null; popd >/dev/null", "/usr/sbin/");
+ 	system(command);
+-	if (access("DSDT.dat", R_OK)) {
+-		ret = system("cat /proc/acpi/dsdt > DSDT.dat");
++	if (access("/var/log/firmwarekit/DSDT.dat", R_OK)) {
++		ret = system("cat /proc/acpi/dsdt > /var/log/firmwarekit/DSDT.dat");
+ 		if (ret != EXIT_SUCCESS) {
+ 			fprintf(stderr,"WARN (acpixtract): failed to create DSDT.dat.\n");
+ 			return;
+@@ -215,9 +205,9 @@
+ 	}
+ 
+ 	/* Disassemble DSDT.dat with iasl, will create DSDT.dsl */
+-	sprintf(command, "%siasl -d DSDT.dat &>/dev/null", cmd_prefix);
++	sprintf(command, "pushd /var/log/firmwarekit/ >/dev/null; %siasl -d DSDT.dat &>/dev/null; popd >/dev/null", "/usr/bin/");
+ 	system(command);
+-	file = fopen("DSDT.dsl", "r");
++	file = fopen("/var/log/firmwarekit/DSDT.dsl", "r");
+ 	if (!file)
+ 		fprintf(stderr,"WARN (iasl): failed to create DSDT.dsl.\n");
+ 
+@@ -239,7 +229,7 @@
+ 		 else
+ 			 sprintf(filen, "SSDT%d", i);
+ 			 
+-	 	sprintf(command, "%siasl -d -e DSDT.dat %s.dat &>/dev/null", cmd_prefix, filen);
++	 	sprintf(command, "pushd /var/log/firmwarekit/ >/dev/null; %siasl -d -e DSDT.dat %s.dat &>/dev/null; popd >/dev/null", "/usr/bin/", filen);
+ 	 	system(command);
+ 
+ 		strcat(filen, ".dsl");
+@@ -258,7 +248,7 @@
+ 	 }
+ 	 
+ 	/* current iasl has an issue with arugment counts in SSDT's, work around this */
+-	system("sed -i -e \"s/^ACPI Error.*Argument count mismatch for method.*//g\" SSDT*.dsl &> /dev/null");
++	system("sed -i -e \"s/^ACPI Error.*Argument count mismatch for method.*//g\" /var/log/firmwarekit/SSDT*.dsl &> /dev/null");
+ 
+ }
+ 
+diff -Naur linuxfirmwarekit.orig/main.c linuxfirmwarekit/main.c
+--- linuxfirmwarekit.orig/main.c	2007-03-23 22:16:50.000000000 -0300
++++ linuxfirmwarekit/main.c	2007-05-25 13:14:42.000000000 -0300
+@@ -196,7 +196,7 @@
+ 
+ 	/* execute all tests in 'plugins' dir 
+ 	 * (implemented in plugins.c) */
+-	execute_plugins("plugins/");
++	execute_plugins(LIBDIR "/firmwarekit/plugins/");
+ 
+ 	finished_tests = 1;
+ 	if(!interactive_mode) {
+diff -Naur linuxfirmwarekit.orig/Makefile linuxfirmwarekit/Makefile
+--- linuxfirmwarekit.orig/Makefile	2007-04-10 18:12:47.000000000 -0300
++++ linuxfirmwarekit/Makefile	2007-05-25 13:15:17.000000000 -0300
+@@ -1,18 +1,16 @@
+-CFLAGS =  -Wall -W -Os -D_FORTIFY_SOURCE=2 -g
++libdir = /usr/lib
++CFLAGS =  -DLIBDIR="\"$(libdir)\"" -Wall -W -Os -D_FORTIFY_SOURCE=2 -g
+ override CFLAGS +=  `pkg-config --cflags glib-2.0` -I/usr/include/slang -fPIC -I.
+ #LDFLAGS = -nodefaultlibs -Linitramfs/data/lib -Linitramfs/data/usr/lib  -export-dynamic  -lc -ldl `pkg-config --libs glib-2.0`   -lnewt -lslang  
+ LDFLAGS = -nostdlibs -Linitramfs/data/lib -Linitramfs/data/usr/lib  -export-dynamic  -lc -ldl `pkg-config --libs glib-2.0`   -lnewt -lslang 
+ 
+ 
+-SUBDIRS = acpiinfo pciresource acpicompile cpufreq ethernet edd battery msrpoke pcipoke usbports tonetest bashshell mcfg lmbench  mtrr shelltools fan fadt chk_hpet suspend thermal_trip microcode dmi os2gap apicedge maxreadreq virt ebda SUN
++SUBDIRS = acpiinfo pciresource acpicompile cpufreq ethernet edd battery msrpoke pcipoke usbports tonetest bashshell mcfg mtrr shelltools fan fadt chk_hpet suspend thermal_trip microcode dmi os2gap apicedge maxreadreq virt ebda SUN
+ LIBS = dmesg.o main.o tests.o plugins.o ui.o uri.o dumpxml.o usb.o serial.o lib.o  acpitable.o dsdt.o e820.o ssh.o
+ 
+ all: libstandalone.so biostest subdirs
+ 
+-# if arch is i*86 (i386, i686, etc.)
+-ifeq ($(shell uname -m | cut -c1,3,4), i86)
+-LIBC = initramfs/data/usr/lib/libc.so
+-else
++ifeq ($(shell uname -m), ia64)
+ SUBDIRS += ia64_mce_inject
+ endif
+ 
+@@ -22,13 +20,13 @@
+ 
+ $(SUBDIRS):
+ 	$(MAKE) -C $@
+-	cd initramfs/kernel ; make
++#	cd initramfs/kernel ; make
+ 
+-biostest: $(LIBS) biostest.h  .depend $(LIBC)
++biostest: $(LIBS) biostest.h  .depend
+ 	gcc $(LIBS) $(LDFLAGS) -o biostest
+ 
+ initramfs/data/usr/lib/libc.so:
+-	cd initramfs ; sh create_initramfs.sh	
++#	cd initramfs ; sh create_initramfs.sh	
+ 
+ libstandalone.so: $(LIBS) biostest.h .depend libstandalone.o
+ 	gcc --shared libstandalone.o lib.o -o libstandalone.so
+@@ -47,10 +45,14 @@
+ 	rm -rf *~ *.o .depend */.depend
+ 
+ install: all
+-	mkdir results || :
+-	cp -a biostest results plugins initramfs/data/root/
+-	cp -a libstandalone.so initramfs/data/usr/lib
+-	cd shelltools ; make DESTDIR=../initramfs/data install
++	mkdir -p $(DESTDIR)/usr/{bin,sbin}
++	mkdir -p $(DESTDIR)/var/log/firmwarekit/usbkey
++	mkdir -p $(DESTDIR)/$(libdir)/firmwarekit
++	cp -a biostest $(DESTDIR)/usr/sbin
++	cp -a plugins $(DESTDIR)/$(libdir)/firmwarekit
++	cp -a libstandalone.so $(DESTDIR)/$(libdir)
++	cp initramfs/{resources,results}.css $(DESTDIR)/var/log/firmwarekit
++	cd shelltools ; make DESTDIR=$(DESTDIR) install
+ 
+ iso: all
+ 	cd initramfs ; sh create_initramfs.sh
+diff -Naur linuxfirmwarekit.orig/ssh.c linuxfirmwarekit/ssh.c
+--- linuxfirmwarekit.orig/ssh.c	2007-04-10 18:12:47.000000000 -0300
++++ linuxfirmwarekit/ssh.c	2007-05-25 13:14:42.000000000 -0300
+@@ -67,9 +67,10 @@
+ 	}
+ 
+ 	/* Copy results into tmp dir */
+-	ret1 = snprintf (command, 4096, "cp /root/acpi.dump /root/DSDT* "
+-			"/root/results/*"
+-			" /var/log/firmwarekit/%s", result_dir);
++	ret1 = snprintf (command, 4096, "cp /var/log/firmwarekit/acpi.dump "
++			"/var/log/firmwarekit/DSDT* /var/log/firmwarekit/results.* "
++			"/var/log/firmwarekit/resources.* "
++			"/var/log/firmwarekit/%s", result_dir);
+ 
+ 	ret2 = system(command);
+ 	if (ret1 >= 4096 || ret2)
+diff -Naur linuxfirmwarekit.orig/tests.c linuxfirmwarekit/tests.c
+--- linuxfirmwarekit.orig/tests.c	2007-04-11 01:14:16.000000000 -0300
++++ linuxfirmwarekit/tests.c	2007-05-25 13:14:42.000000000 -0300
+@@ -199,15 +199,15 @@
+ 
+ void dump_results(void)
+ {
+-	dump_xml(all_tests, "results/results.xml");
+-	dump_text(all_tests, "results/results.txt");
+-	dump_xml_resources("results/resources.xml");
++	dump_xml(all_tests, "/var/log/firmwarekit/results.xml");
++	dump_text(all_tests, "/var/log/firmwarekit/results.txt");
++	dump_xml_resources("/var/log/firmwarekit/resources.xml");
+ 	show_results_ui(all_tests);
+ }
+ void dump_xml_results(void)
+ {
+-	dump_xml(all_tests, "results/results.xml");
+-	dump_xml_resources("results/resources.xml");
++	dump_xml(all_tests, "/var/log/firmwarekit/results.xml");
++	dump_xml_resources("/var/log/firmwarekit/resources.xml");
+ }
+ 
+ void show_results(void)
+diff -Naur linuxfirmwarekit.orig/usb.c linuxfirmwarekit/usb.c
+--- linuxfirmwarekit.orig/usb.c	2007-03-24 01:27:08.000000000 -0300
++++ linuxfirmwarekit/usb.c	2007-05-25 13:14:42.000000000 -0300
+@@ -75,17 +75,15 @@
+ 			continue;
+ 		
+ 		/* ok so we have a removable device with USB in the device string. Assume it's an USB key */
+-		sprintf(buffer, "/bin/mount /dev/%s1 /usbkey &> mountlog", entry->d_name);
++		sprintf(buffer, "/bin/mount /dev/%s1 /var/log/firmwarekit/usbkey &> /var/log/firmwarekit/mountlog", entry->d_name);
+ 		if (system(buffer)!=0) {
+ 			/* no cookie; maybe there was no partition table */
+-			sprintf(buffer, "/bin/mount /dev/%s /usbkey &> mountlog", entry->d_name);
++			sprintf(buffer, "/bin/mount /dev/%s /var/log/firmwarekit/usbkey &> mountlog", entry->d_name);
+ 			if (system(buffer)!=0)
+ 				continue;
+ 		}
+-		system("/bin/cp results/* /usbkey &> /dev/null");
+-		system("/bin/cp acpi.dump /usbkey &> /dev/null");
+-		system("/bin/cp DSDT.* /usbkey &> /dev/null");
+-		system("/bin/umount /usbkey &> /dev/null");
++		system("/bin/cp /var/log/firmwarekit/* /var/log/firmwarekit/usbkey &> /dev/null");
++		system("/bin/umount /var/log/firmwarekit/usbkey &> /dev/null");
+ 		devcount ++;
+ 	} while (entry);
+ 

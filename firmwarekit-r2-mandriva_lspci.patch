@@ -1,0 +1,126 @@
+diff -Naur linuxfirmwarekit.orig/Documentation/TestsInfo/maxreadreq.info linuxfirmwarekit/Documentation/TestsInfo/maxreadreq.info
+--- linuxfirmwarekit.orig/Documentation/TestsInfo/maxreadreq.info	2007-04-09 19:01:28.000000000 -0300
++++ linuxfirmwarekit/Documentation/TestsInfo/maxreadreq.info	2007-05-23 18:58:46.000000000 -0300
+@@ -11,14 +11,14 @@
+ <FAIL>
+ <MSG>Cannot find lspci command</MSG>
+ <DETAILS>
+-Can't find /sbin/lspci.
++Can't find /usr/bin/lspci.
+ </DETAILS>
+ </FAIL>
+ 
+ <FAIL>
+ <MSG>Cannot execute lspci command</MSG>
+ <DETAILS>
+-Can't execute /sbin/lspci.
++Can't execute /usr/bin/lspci.
+ </DETAILS>
+ </FAIL>
+ 
+diff -Naur linuxfirmwarekit.orig/maxreadreq/maxreadreq.c linuxfirmwarekit/maxreadreq/maxreadreq.c
+--- linuxfirmwarekit.orig/maxreadreq/maxreadreq.c	2007-04-09 19:01:28.000000000 -0300
++++ linuxfirmwarekit/maxreadreq/maxreadreq.c	2007-05-23 18:58:46.000000000 -0300
+@@ -69,17 +69,17 @@
+ 		"This test checks if the firmware has set MaxReadReq to a higher value on non-montherboard devices");
+ 		
+ 	/* Check if lspci command exists */	
+-	if(stat("/sbin/lspci", &buffer) != 0) {
++	if(stat("/usr/bin/lspci", &buffer) != 0) {
+ 
+ 		report_result("maxreadreq", FAIL, "Cannot find lspci command", 
+-				"/sbin/lspci", NULL);
++				"/usr/bin/lspci", NULL);
+ 		goto finish;
+ 	}
+ 
+-	file = popen("/sbin/lspci -vvv", "r");
++	file = popen("/usr/bin/lspci -vvv", "r");
+ 	if (!file) {
+ 		report_result("maxreadreq", FAIL, "Cannot execute lspci command", 
+-				"/sbin/lspci -vvv", NULL);
++				"/usr/bin/lspci -vvv", NULL);
+ 		goto finish;
+ 	}
+ 	while (!feof(file)) {
+diff -Naur linuxfirmwarekit.orig/mcfg/mcfg.c linuxfirmwarekit/mcfg/mcfg.c
+--- linuxfirmwarekit.orig/mcfg/mcfg.c	2006-09-14 06:03:40.000000000 -0300
++++ linuxfirmwarekit/mcfg/mcfg.c	2007-05-23 18:58:54.000000000 -0300
+@@ -70,7 +70,7 @@
+ 	}
+ 
+ 
+-	sprintf(filename, "/sbin/lspci -vxxx -s %i:%i", segment, device);
++	sprintf(filename, "/usr/bin/lspci -vxxx -s %i:%i", segment, device);
+ 	file = popen(filename, "r");
+ 	if (!file)
+ 		return;
+diff -Naur linuxfirmwarekit.orig/mtrr/mtrr.c linuxfirmwarekit/mtrr/mtrr.c
+--- linuxfirmwarekit.orig/mtrr/mtrr.c	2007-02-04 00:53:43.000000000 -0200
++++ linuxfirmwarekit/mtrr/mtrr.c	2007-05-23 18:58:54.000000000 -0300
+@@ -177,7 +177,7 @@
+ 	int pref = 0;
+ 	char line[4096];
+ 	memset(line,0,4096);
+-	sprintf(line,"/sbin/lspci -v -s %s", device);
++	sprintf(line,"/usr/bin/lspci -v -s %s", device);
+ 	file = popen(line, "r");
+ 	if (!file)
+ 		return pref;
+diff -Naur linuxfirmwarekit.orig/pcipoke/pcipoke.c linuxfirmwarekit/pcipoke/pcipoke.c
+--- linuxfirmwarekit.orig/pcipoke/pcipoke.c	2006-09-07 17:35:17.000000000 -0300
++++ linuxfirmwarekit/pcipoke/pcipoke.c	2007-05-23 18:58:54.000000000 -0300
+@@ -49,7 +49,7 @@
+ 	
+ 	buffer[0]=0;
+ 
+-	sprintf(path, "/sbin/lspci -s %s -xxx", device);
++	sprintf(path, "/usr/bin/lspci -s %s -xxx", device);
+ 	file = popen(path, "r");
+ 	if (!file)
+ 		return;
+@@ -206,7 +206,7 @@
+ 	newtFormAddComponent(myForm, myList);
+ 	newtListboxSetWidth(myList, W-6);
+ 
+-	file = popen("/sbin/lspci", "r");
++	file = popen("/usr/bin/lspci", "r");
+ 	while (!feof(file)) {
+ 		char buffer[4096];
+ 		char *c;
+diff -Naur linuxfirmwarekit.orig/pciresource/pciinfo.c linuxfirmwarekit/pciresource/pciinfo.c
+--- linuxfirmwarekit.orig/pciresource/pciinfo.c	2006-09-07 15:06:42.000000000 -0300
++++ linuxfirmwarekit/pciresource/pciinfo.c	2007-05-23 18:58:54.000000000 -0300
+@@ -40,7 +40,7 @@
+ 
+ 	memset(pciuri, 0, 1024);
+ 
+-	file = popen("/sbin/lspci -vxxx", "r");
++	file = popen("/usr/bin/lspci -vxxx", "r");
+ 	if (!file)
+ 		return;
+ 
+diff -Naur linuxfirmwarekit.orig/pciresource/pciresource.c linuxfirmwarekit/pciresource/pciresource.c
+--- linuxfirmwarekit.orig/pciresource/pciresource.c	2006-11-06 12:25:31.000000000 -0200
++++ linuxfirmwarekit/pciresource/pciresource.c	2007-05-23 18:58:54.000000000 -0300
+@@ -152,7 +152,7 @@
+ 
+ 	memset(current_device, 0, 4096);
+ 
+-	file = popen("/sbin/lspci -v", "r");
++	file = popen("/usr/bin/lspci -v", "r");
+ 	while (!feof(file)) {
+ 		char *c2, *c3;
+ 		char hexaddress[20];
+diff -Naur linuxfirmwarekit.orig/pciresource/resourcedb.c linuxfirmwarekit/pciresource/resourcedb.c
+--- linuxfirmwarekit.orig/pciresource/resourcedb.c	2006-09-07 15:06:42.000000000 -0300
++++ linuxfirmwarekit/pciresource/resourcedb.c	2007-05-23 18:58:54.000000000 -0300
+@@ -131,7 +131,7 @@
+ 
+ 	memset(current_device, 0, 4096);
+ 
+-	file = popen("/sbin/lspci -v -n", "r");
++	file = popen("/usr/bin/lspci -v -n", "r");
+ 	while (!feof(file)) {
+ 		char *c2, *c3;
+ 		char devid[14];

@@ -1,0 +1,8 @@
+--- linuxfirmwarekit/ebda/Makefile.orig	2007-05-25 10:50:11.000000000 -0300
++++ linuxfirmwarekit/ebda/Makefile	2007-05-25 10:50:24.000000000 -0300
+@@ -1,4 +1,4 @@
+-override CFLAGS = `pkg-config --cflags glib-2.0`  -I..
++override CFLAGS = `pkg-config --cflags glib-2.0` -I.. -fPIC
+ LDFLAGS =  `pkg-config --libs glib-2.0`
+ 
+ 
