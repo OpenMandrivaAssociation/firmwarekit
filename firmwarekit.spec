@@ -4,7 +4,7 @@ Version:	r2
 Release:	%mkrel 6
 License:	LGPL
 Group:  	System/Configuration/Hardware
-URL:    	http://www.linuxfirmwarekit.org/
+URL:    	https://www.linuxfirmwarekit.org/
 Source: 	http://www.linuxfirmwarekit.org/download/firmwarekit-%version.tar.gz
 Patch0:  	firmwarekit-r2-distro.patch
 Patch1: 	firmwarekit-r2-mandriva_lspci.patch
